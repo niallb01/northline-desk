@@ -1,0 +1,51 @@
+[
+  {
+    "id": "acct-annual-ok",
+    "plan": "annual",
+    "customerName": "Priya Shah",
+    "charges": [
+      {
+        "invoiceId": "in_annual_1",
+        "chargeId": "ch_annual_1",
+        "amount": 1788,
+        "date": "2026-10-11",
+        "status": "succeeded"
+      }
+    ]
+  },
+  {
+    "id": "acct-monthly-late",
+    "plan": "monthly",
+    "customerName": "Tom Ellis",
+    "charges": [
+      {
+        "invoiceId": "in_monthly_1",
+        "chargeId": "ch_monthly_1",
+        "amount": 49,
+        "date": "2026-09-11",
+        "status": "succeeded"
+      }
+    ]
+  },
+  {
+    "id": "acct-double",
+    "plan": "monthly",
+    "customerName": "Amina Okonkwo",
+    "charges": [
+      {
+        "invoiceId": "in_double_1",
+        "chargeId": "ch_double_1",
+        "amount": 149,
+        "date": "2026-07-23",
+        "status": "succeeded"
+      },
+      {
+        "invoiceId": "in_double_1",
+        "chargeId": "ch_double_dup",
+        "amount": 149,
+        "date": "2026-07-23",
+        "status": "succeeded"
+      }
+    ]
+  }
+]

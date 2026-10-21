@@ -13,7 +13,7 @@
 
 **Same company:** Refund windows match `policy-desk/docs/refunds.md`. A duplicate charge matches `policy-desk/docs/billing.md`. The numbers live in this project’s own check, so the tool still says no when the model forgets the page.
 
-**Finished shape:** Three tools (`get_account`, `list_charges`, `propose_refund`), a local script where you can see the model pick one, then the same tools behind an MCP server Cursor can call. No hosted database. No email. No payment.
+**Finished shape:** Three tools (`get_account`, `list_charges`, `start_refund`), a local script where you can see the model pick one, then the same tools behind an MCP server Cursor can call. No hosted database. No email. No payment.
 
 ---
 
@@ -55,14 +55,14 @@ Each account has an id, a plan, a customer name, and a list of charges (invoice 
 
 **Files to add:**
 - `accounts.js` — `getAccount(id)` and `listCharges(id)`. Missing ids return a clear not-found result, not a throw the caller has to guess at.
-- `lookup.js` — print one account and its charges.
+- `print-account.js` — CLI: print one account and its charges to the terminal.
 
 **You run:**
 ```bash
 cd "/Users/niallbennett/Desktop/ai learning path/northline-desk"
-node lookup.js --id acct-annual-ok
-node lookup.js --id acct-double
-node lookup.js --id acct-missing
+node print-account.js --id acct-annual-ok
+node print-account.js --id acct-double
+node print-account.js --id acct-missing
 ```
 
 **You should see:** The annual account and its single charge, the double-charge account with both charge ids, and a not-found line for the missing id.
@@ -71,25 +71,25 @@ node lookup.js --id acct-missing
 
 ---
 
-## Milestone 3 — File a refund, do not pay it
+## Milestone 3 — Start a refund, do not pay it
 
-**Purpose:** The write tool checks the Northline rules and stores a request. It does not transfer money.
+**Purpose:** The write tool checks the Northline rules and starts a refund (pending row). It does not transfer money.
 
 **Files to add:**
-- `refunds.js` — `proposeRefund({ accountId, chargeId })`:
+- `refundRules.js` — `startRefund({ accountId, chargeId })`:
   - Annual charge 30 days old or newer → pending
   - Monthly charge 14 days old or newer → pending
   - Two successful charges on the same invoice → the duplicate can be pending
   - Anything else → rejected, and nothing is added
-  - A second proposal for the same charge → rejected as already pending
-- `propose.js` — run one proposal and print allowed or rejected, plus the reason
-- `pending.json` is created by the script when a proposal is allowed. It starts empty of real payouts.
+  - A second start for the same charge → rejected as already pending
+- `start-refund.js` — run one start and print started or rejected, plus the reason
+- `pending.json` is created when a refund is started. It starts empty of real payouts.
 
 **You run:**
 ```bash
-node propose.js --id acct-annual-ok --charge ch_annual_1
-node propose.js --id acct-monthly-late --charge ch_monthly_1
-node propose.js --id acct-double --charge ch_double_dup
+node start-refund.js --id acct-annual-ok --charge ch_annual_1
+node start-refund.js --id acct-monthly-late --charge ch_monthly_1
+node start-refund.js --id acct-double --charge ch_double_dup
 ```
 
 **You should see:** The annual charge and the duplicate land in `pending.json` with status `pending`. The late monthly charge is rejected and is absent from that file.
@@ -115,7 +115,7 @@ node assist.js --id acct-monthly-late
 node assist.js --id acct-annual-ok
 ```
 
-**You should see:** For the late monthly account, a lookup and a rejected proposal, then a sentence that says the refund is not allowed. For the annual account, a pending proposal and a sentence that says it is waiting for a person. Neither run pays anything.
+**You should see:** For the late monthly account, a lookup and a rejected start_refund, then a sentence that says the refund was not started. For the annual account, a started refund (pending) and a sentence that says it is waiting for a person. Neither run pays anything.
 
 **You should understand:** The model chooses the tool and the arguments. Your functions decide what comes back. When the tool says no, the model is supposed to stop. The trace is how you check that it did.
 
@@ -126,7 +126,7 @@ node assist.js --id acct-annual-ok
 **Purpose:** Cursor can call the same three functions without a new set of rules.
 
 **Files to add:**
-- `server.js` — MCP server on stdio. Tools: `get_account`, `list_charges`, `propose_refund`. Each one calls the function from Milestone 2 or 3.
+- `server.js` — MCP server on stdio. Tools: `get_account`, `list_charges`, `start_refund`. Each one calls the function from Milestone 2 or 3.
 - A short note in this file’s Milestone 5 section is enough for the Cursor config; a README can wait until the server runs.
 
 **You run:**
@@ -135,7 +135,7 @@ node server.js
 ```
 That process waits for a client, so it will look idle. Stop it with Ctrl+C. Then add the server in Cursor’s MCP settings, command `node`, args the full path to `server.js`. Ask: “Can we refund Northline account acct-monthly-late?”
 
-**You should see:** In Cursor, a tool call to `get_account` or `propose_refund`, and an answer that the refund is not allowed. `pending.json` does not gain a row for that account.
+**You should see:** In Cursor, a tool call to `get_account` or `start_refund`, and an answer that the refund was not started. `pending.json` does not gain a row for that account.
 
 **You should understand:** MCP is the socket. The tools are the ones you already ran. A new client does not get a new, looser refund rule.
 

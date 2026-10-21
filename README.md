@@ -1,37 +1,131 @@
 # Northline desk
 
-A support agent asks about a Northline customer account. Later, a model will be allowed to look the account up and to **propose** a refund. It will not be allowed to send money. Any approved payout stays a human step.
+A support agent asks about a Northline customer account. An AI assistant may **look up** the account and **propose** a refund. It cannot **pay** the customer. Allowed proposals are stored in a local pending file until a person approves them—payment is out of scope for this repo.
 
-Northline is the same fictional company as in [policy-desk](https://github.com/niallb01/policy-desk). Refund windows in code match that project’s refunds page. This repo is separate code and its own data file—it does not import the other folders.
+Northline is the same fictional B2B company as in [policy-desk](https://github.com/niallb01/policy-desk). Refund windows and duplicate-charge handling match that repo’s policy pages, but the rules are enforced in **this** project’s code so a model cannot talk past a rejected tool result. This folder does not import `policy-desk`, `ticket-extractor`, or `ticket-extractor-learn`.
+
+**Language:** Node.js (JavaScript). **Storage:** `accounts.json` and `pending.json` on disk—no hosted database, email, or payment API.
 
 ## Why this exists
 
-The risky step is paying the customer, not reading the account. Tools that only read data and write a **pending** request draw a hard line: a confident model answer cannot become a bank transfer by itself.
+Reading an account is low risk. Moving money is high risk. A model that can search charges and file a structured request saves agent time. A model that can trigger a payout is how a wrong answer becomes a bank transfer. Northline desk draws the line in the **tools**: lookup and list are read-only; the only write path creates a **pending** row with a pass/fail decision already made in code.
 
-## What is in the repo now
+## Finished shape (all milestones)
 
-| File | Role |
-| --- | --- |
-| `accounts.json` | Three sample customers and their charges (the only account data tools may use) |
-| `accounts.js` | Load the file and find one account or its charges by id |
-| `lookup.js` | Terminal script to print one account (no AI, no refund) |
-| `MILESTONES.md` | Step-by-step build plan (one milestone per session) |
+When the build is complete, the repo looks like this:
 
-**Milestone 1 — the accounts:** Open `accounts.json` and read the three records. Tools must not invent accounts or charges that are not in this file.
+```
+accounts.json          ← only customer data tools may use
+accounts.js            ← getAccount, listCharges
+refunds.js             ← proposeRefund (rules + pending file)
+lookup.js              ← print one account (no AI)
+propose.js             ← print one refund proposal (no AI)
+assist.js              ← model picks tools; you see every step
+server.js              ← same three tools over MCP for Cursor
+pending.json           ← created locally; gitignored
+```
 
-**Milestone 2 — look up an account:** Run lookup from the project folder:
+**Flow:**
+
+1. **Data** — Three fixed accounts in `accounts.json`.
+2. **Functions** — Plain Node functions read the file and apply refund rules.
+3. **Tools** — Those functions become three named tools the model (or Cursor) can call.
+4. **Assist script** — One terminal run shows tool name, arguments, result, then a final sentence.
+5. **MCP server** — Same tools on stdio so Cursor calls them without duplicate logic or looser rules.
+
+## The three tools
+
+| Tool | What it does | Pays money? |
+| --- | --- | --- |
+| `get_account` | Return one customer (plan, name, id) | No |
+| `list_charges` | Return charges for that account | No |
+| `propose_refund` | Check Northline rules; if allowed, append to `pending.json` with status `pending` | No |
+
+`propose_refund` **rejects** (and writes nothing) when:
+
+- Annual charge is older than **30** days
+- Monthly charge is older than **14** days
+- The charge is not a duplicate on the same invoice (see billing policy)
+- A proposal for that charge is **already** pending
+
+It **allows pending** when:
+
+- Annual charge is 30 days old or newer
+- Monthly charge is 14 days old or newer
+- Two successful charges share the same invoice—the **duplicate** charge id can be proposed even if the date is old
+
+## Sample accounts
+
+| Account id | Story | Refund expectation |
+| --- | --- | --- |
+| `acct-annual-ok` | Annual plan, one charge ~10 days ago | Allowed within window |
+| `acct-monthly-late` | Monthly plan, one charge ~40 days ago | Rejected (too old) |
+| `acct-double` | Two successful charges on one invoice | Duplicate (`ch_double_dup`) can be pending |
+
+Open `accounts.json` for charge ids, amounts, and dates.
+
+## How to run the project
+
+Clone the repo, then work through stages in order. Full session rules live in `MILESTONES.md` (one milestone per session).
+
+### Look up an account (Milestone 2)
 
 ```bash
-cd northline-desk   # or your full path to this repo
 node lookup.js --id acct-annual-ok
 node lookup.js --id acct-double
 node lookup.js --id acct-missing
 ```
 
-You should see the annual and double-charge accounts printed, and a clear not-found line for `acct-missing`. `accounts.js` is imported by other scripts; running `node accounts.js` alone does nothing useful.
+### Propose a refund, do not pay (Milestone 3)
 
-Later milestones add refund proposals (`pending.json`), a visible model tool loop (`assist.js`), and the same tools as an MCP server (`server.js`). See `MILESTONES.md` for the full path.
+```bash
+node propose.js --id acct-annual-ok --charge ch_annual_1
+node propose.js --id acct-monthly-late --charge ch_monthly_1
+node propose.js --id acct-double --charge ch_double_dup
+```
+
+Check `pending.json` for allowed rows; rejected runs leave the file unchanged for that charge.
+
+### Watch the model choose tools (Milestone 4)
+
+```bash
+npm install
+cp .env.example .env   # set OPENAI_API_KEY
+node assist.js --id acct-monthly-late
+node assist.js --id acct-annual-ok
+```
+
+You should see each tool call and a final answer that respects rejections and pending state—still no payout.
+
+### Same tools in Cursor (Milestone 5)
+
+```bash
+node server.js
+```
+
+The process waits on stdio (idle until a client connects). In Cursor MCP settings: command `node`, args the full path to `server.js`. Example question: *“Can we refund Northline account acct-monthly-late?”* — expect lookup and/or `propose_refund`, and no new pending row when policy rejects the refund.
+
+## Build status
+
+This README describes the **full** project. The repo may only contain early milestones until you finish the rest. See git history and `MILESTONES.md` for what is implemented today.
+
+| Milestone | Topic |
+| --- | --- |
+| 0 | Folder and map |
+| 1 | `accounts.json` |
+| 2 | `accounts.js`, `lookup.js` |
+| 3 | `refunds.js`, `propose.js`, `pending.json` |
+| 4 | `assist.js`, OpenAI tool loop |
+| 5 | `server.js`, MCP |
 
 ## Secrets
 
-When you reach the milestone that calls OpenAI, use a local `.env` with `OPENAI_API_KEY`. Do not commit `.env` or `pending.json`.
+The repository is public. Put `OPENAI_API_KEY` in a local `.env` (from `.env.example` once Milestone 4 exists). Do not commit `.env` or `pending.json`.
+
+## Learning path
+
+- **policy-desk** — answer support questions from company markdown with citations and refusals.
+- **northline-desk** (this repo) — agent actions on account data with a hard boundary on refunds.
+- **ticket-extractor-learn** — triage ticket text against a fixed schema and grader.
+
+Same fictional company where it helps the story; separate codebases throughout.

@@ -133,7 +133,22 @@ node request-refund.js --id acct-annual-ok
 ```bash
 node server.js
 ```
-That process waits for a client, so it will look idle. Stop it with Ctrl+C. Then add the server in Cursor’s MCP settings, command `node`, args the full path to `server.js`. Ask: “Can we refund Northline account acct-monthly-late?”
+That process waits for a client, so it will look idle. Stop it with Ctrl+C.
+
+**Cursor MCP config:** command `node`, args the full path to `server.js`.
+
+```json
+{
+  "mcpServers": {
+    "northline-desk": {
+      "command": "node",
+      "args": ["/Users/niallbennett/Desktop/ai learning path/northline-desk/server.js"]
+    }
+  }
+}
+```
+
+Ask: “Can we refund Northline account acct-monthly-late?”
 
 **You should see:** In Cursor, a tool call to `get_account` or `start_refund`, and an answer that the refund was not started. `pending.json` does not gain a row for that account.
 

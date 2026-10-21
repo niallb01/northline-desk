@@ -105,14 +105,14 @@ node start-refund.js --id acct-double --charge ch_double_dup
 **Files to add:**
 - `.env.example`, `.gitignore` (include `.env` and `pending.json`)
 - `package.json` — `openai`, `dotenv`
-- `assist.js` — tools are the three functions above. Print each tool name, the arguments, and the tool result, then the final sentence.
+- `request-refund.js` — tools are the three functions above. Print each tool name, the arguments, and the tool result, then the final sentence.
 
 **You run:**
 ```bash
 npm install
 cp .env.example .env   # add OPENAI_API_KEY
-node assist.js --id acct-monthly-late
-node assist.js --id acct-annual-ok
+node request-refund.js --id acct-monthly-late
+node request-refund.js --id acct-annual-ok
 ```
 
 **You should see:** For the late monthly account, a lookup and a rejected start_refund, then a sentence that says the refund was not started. For the annual account, a started refund (pending) and a sentence that says it is waiting for a person. Neither run pays anything.

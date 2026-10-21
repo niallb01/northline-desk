@@ -20,7 +20,7 @@ accounts.js            ← getAccount, listCharges
 refundRules.js         ← startRefund (assess rules; on pass write pending.json)
 print-account.js       ← CLI: print one account and charges (no AI)
 start-refund.js        ← CLI: start one refund (no AI)
-assist.js              ← model picks tools; you see every step
+request-refund.js  ← model picks tools; you see every step
 server.js              ← same three tools over MCP for Cursor
 pending.json           ← created locally; gitignored
 ```
@@ -30,7 +30,7 @@ pending.json           ← created locally; gitignored
 1. **Data** — Three fixed accounts in `accounts.json`.
 2. **Functions** — Plain Node functions read the file and apply refund rules.
 3. **Tools** — Those functions become three named tools the model (or Cursor) can call.
-4. **Assist script** — One terminal run shows tool name, arguments, result, then a final sentence.
+4. **Refund request script** — One terminal run shows tool name, arguments, result, then a final sentence.
 5. **MCP server** — Same tools on stdio so Cursor calls them without duplicate logic or looser rules.
 
 ## The three tools
@@ -91,8 +91,8 @@ Check `pending.json` for allowed rows; rejected runs leave the file unchanged fo
 ```bash
 npm install
 cp .env.example .env   # set OPENAI_API_KEY
-node assist.js --id acct-monthly-late
-node assist.js --id acct-annual-ok
+node request-refund.js --id acct-monthly-late
+node request-refund.js --id acct-annual-ok
 ```
 
 You should see each tool call and a final answer that respects rejections and pending state—still no payout.
@@ -115,7 +115,7 @@ This README describes the **full** project. The repo may only contain early mile
 | 1 | `accounts.json` |
 | 2 | `accounts.js`, `print-account.js` |
 | 3 | `refundRules.js`, `start-refund.js`, `pending.json` |
-| 4 | `assist.js`, OpenAI tool loop |
+| 4 | `request-refund.js`, OpenAI tool loop |
 | 5 | `server.js`, MCP |
 
 ## Secrets
